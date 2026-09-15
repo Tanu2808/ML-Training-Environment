@@ -1,0 +1,6 @@
+data:
+  target_column: target
+  id_columns: []
+  categorical_columns: []
+  numerical_columns: []
+  datetime_columns: []

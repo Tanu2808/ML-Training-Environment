@@ -1,0 +1,9 @@
+model:
+  type: baseline
+  random_state: 42
+  n_estimators: 100
+
+training:
+  epochs: 10
+  batch_size: 32
+  learning_rate: 0.001

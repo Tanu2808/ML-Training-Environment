@@ -1,0 +1,6 @@
+training:
+  seed: 42
+  validation_strategy: holdout
+  cross_validation_folds: 5
+  early_stopping: false
+  monitor: val_loss
