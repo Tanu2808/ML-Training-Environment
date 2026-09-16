@@ -307,14 +307,16 @@ src/features/
 └── text.py
 ```
 
-The framework is intended to support reusable:
+### Currently available
 
-* Numerical feature engineering
-* Categorical feature engineering
-* Datetime features
-* Text features
-* Feature interactions
-* Feature selection
+* Numerical feature engineering (arithmetic, ratios, aggregation, binning, log)
+* Categorical feature engineering (leakage-safe frequency/count encoding, rare category grouping)
+* Datetime features (calendar extraction, cyclical encoding)
+* Text features (vectorized statistics, TF-IDF)
+* Feature interactions (controlled pairwise combinations)
+* Feature selection (leakage-safe variance, correlation, mutual information, and model-based selectors)
+
+> **See `src/features/README.md` for detailed documentation and examples.**
 
 ---
 
@@ -818,12 +820,12 @@ The long-term goal is to make this pipeline **configurable, reproducible, and re
 
 ## Feature Engineering
 
-* [ ] Numerical feature library
-* [ ] Categorical feature library
-* [ ] Datetime feature library
-* [ ] Text feature library
-* [ ] Interaction features
-* [ ] Feature selection
+* [x] Numerical feature library
+* [x] Categorical feature library
+* [x] Datetime feature library
+* [x] Text feature library
+* [x] Interaction features
+* [x] Feature selection
 * [ ] Dimensionality reduction
 
 ## Models
