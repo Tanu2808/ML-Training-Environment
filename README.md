@@ -444,30 +444,12 @@ src/evaluation/
 
 ### Currently available
 
-* Accuracy metric
-* Evaluator structure
-* Plotting structure
-* Error-analysis structure
+* **Metrics**: Classification (Accuracy, Precision, Recall, F1, Log Loss, ROC-AUC) and Regression (MAE, MSE, RMSE, R², MAPE).
+* **Evaluators**: `ClassificationEvaluator` and `RegressionEvaluator` with structured `EvaluationResult` outputs.
+* **Error Analysis**: Misclassified sample extraction, class error rates, regression residuals, and residual statistics.
+* **Plotting**: Confusion matrix, ROC curve, PR curve, actual vs. predicted, and residual plots (Matplotlib).
 
-### Planned classification metrics
-
-* Accuracy
-* Precision
-* Recall
-* F1 Score
-* ROC-AUC
-* PR-AUC
-* Log Loss
-* Confusion Matrix
-
-### Planned regression metrics
-
-* MAE
-* MSE
-* RMSE
-* R²
-* MAPE
-* SMAPE
+> **See `src/evaluation/README.md` for detailed documentation and examples.**
 
 ---
 
@@ -850,10 +832,10 @@ The long-term goal is to make this pipeline **configurable, reproducible, and re
 
 ## Evaluation
 
-* [ ] Complete metrics library
-* [ ] Unified evaluator
-* [ ] Visualization system
-* [ ] Error analysis
+* [x] Complete metrics library
+* [x] Unified evaluator
+* [x] Visualization system
+* [x] Error analysis
 * [ ] Model comparison
 
 ## Advanced
