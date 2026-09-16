@@ -182,9 +182,3 @@ def create_interaction_features(
 
 
 # ---------------------------------------------------------------------------
-# Backward-compatible stub
-# ---------------------------------------------------------------------------
-
-def create_interaction_terms(df: pd.DataFrame, **kwargs: object) -> pd.DataFrame:
-    """Backward-compatible stub.  Use :func:`create_interaction_features` instead."""
-    return df.copy()

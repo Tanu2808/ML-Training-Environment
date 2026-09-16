@@ -476,10 +476,4 @@ def log_feature(
     return result
 
 
-# ---------------------------------------------------------------------------
-# Backward-compatible stub
-# ---------------------------------------------------------------------------
 
-def add_binned_features(df: pd.DataFrame, **kwargs: object) -> pd.DataFrame:
-    """Backward-compatible stub.  Use :func:`bin_numeric_feature` instead."""
-    return df.copy()

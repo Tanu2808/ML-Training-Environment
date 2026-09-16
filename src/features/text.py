@@ -278,10 +278,4 @@ class TfidfTransformer:
         return self._feature_names
 
 
-# ---------------------------------------------------------------------------
-# Backward-compatible stub
-# ---------------------------------------------------------------------------
 
-def basic_text_features(df: pd.DataFrame, **kwargs: object) -> pd.DataFrame:
-    """Backward-compatible stub.  Use :func:`extract_text_features` instead."""
-    return df.copy()

@@ -242,6 +242,3 @@ def add_cyclical_features(
 # Backward-compatible stub
 # ---------------------------------------------------------------------------
 
-def extract_datetime_components(df: pd.DataFrame, **kwargs: object) -> pd.DataFrame:
-    """Backward-compatible stub.  Use :func:`extract_datetime_features` instead."""
-    return df.copy()

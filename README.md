@@ -137,24 +137,24 @@ Machine Learning Training Environment/
 │   │
 │   ├── features/                    → Feature engineering
 │   │
-│   ├── models/                      → Models and model management
+│   ├── models/                      → Model implementations (Planned)
 │   │   ├── classification/
 │   │   ├── regression/
 │   │   ├── clustering/
 │   │   ├── time_series/
 │   │   └── deep_learning/
 │   │
-│   ├── training/                    → Training, CV, tuning
+│   ├── training/                    → Training, CV, tuning (Planned)
 │   │
-│   ├── evaluation/                  → Metrics and evaluation
+│   ├── evaluation/                  → Metrics and evaluation (Planned)
 │   │
-│   ├── ensemble/                    → Ensemble methods
+│   ├── ensemble/                    → Ensemble methods (Planned)
 │   │
-│   ├── explainability/              → Model explanations
+│   ├── explainability/              → Model explanations (Planned)
 │   │
-│   ├── inference/                   → Prediction / inference
+│   ├── inference/                   → Prediction / inference (Planned)
 │   │
-│   └── utils/                       → General utilities
+│   └── utils/                       → General utilities (Planned)
 │
 ├── pipelines/                       → REUSABLE ML WORKFLOWS
 │   ├── classification.py
@@ -280,16 +280,16 @@ src/preprocessing/
 └── transformations.py
 ```
 
-### Intended capabilities
+### Currently available
 
-* Missing-value handling
-* Categorical encoding
-* Numerical scaling
-* Outlier handling
-* Numerical transformations
+* Missing-value handling (8 strategies + leakage-safe imputer)
+* Categorical encoding (OHE, ordinal)
+* Numerical scaling (Standard, MinMax, Robust)
+* Outlier handling (detection, clipping, and removal)
+* Numerical transformations (log1p, sqrt, reciprocal, power)
 * Reusable preprocessing pipelines
 
-> Some preprocessing components are still under development.
+> **See `src/preprocessing/README.md` for detailed documentation.**
 
 ---
 
@@ -811,12 +811,12 @@ The long-term goal is to make this pipeline **configurable, reproducible, and re
 
 ## Preprocessing
 
-* [ ] Complete missing-value system
-* [ ] Complete encoding system
-* [ ] Complete scaling system
-* [ ] Outlier handling
-* [ ] Transformation utilities
-* [ ] Automated preprocessing pipeline
+* [x] Complete missing-value system
+* [x] Complete encoding system
+* [x] Complete scaling system
+* [x] Outlier handling
+* [x] Transformation utilities
+* [x] Automated preprocessing pipeline
 
 ## Feature Engineering
 
