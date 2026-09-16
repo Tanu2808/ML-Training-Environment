@@ -1,8 +1,14 @@
 {
   "pythonVersion": "3.10",
+  "include": ["."],
+  "exclude": ["**/__pycache__", "**/.git", "**/node_modules"],
   "extraPaths": ["."],
-  "include": ["src", "tests", "pipelines", "scripts"],
-  "exclude": ["**/__pycache__"],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": ["."]
+    }
+  ],
   "reportMissingImports": true,
   "reportMissingModuleSource": false
 }
