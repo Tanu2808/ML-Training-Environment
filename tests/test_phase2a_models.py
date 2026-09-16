@@ -1,0 +1,150 @@
+import pytest
+import numpy as np
+from sklearn.linear_model import LogisticRegression, LinearRegression
+
+from src.models import ModelRegistry, ModelFactory
+
+
+@pytest.fixture(autouse=True)
+def clean_registry():
+    """Ensure the registry is clean before and after each test."""
+    # Save original state (with default registrations)
+    original_models = ModelRegistry._models.copy()
+    
+    # We don't clear here because some tests might want to use the default registrations.
+    # Instead, we just let tests run, and if they mutate the registry, we restore it after.
+    
+    yield
+    
+    # Restore original state
+    ModelRegistry._models.clear()
+    ModelRegistry._models.update(original_models)
+
+
+
+def test_registry_registration_and_retrieval():
+    def mock_constructor():
+        return "mock_model"
+        
+    ModelRegistry.register(
+        name="test_model", 
+        task="classification", 
+        constructor=mock_constructor,
+        aliases=["tm"]
+    )
+    
+    assert ModelRegistry.exists("test_model")
+    assert ModelRegistry.exists("tm")
+    
+    metadata = ModelRegistry.get("test_model")
+    assert metadata["name"] == "test_model"
+    assert metadata["task"] == "classification"
+    assert metadata["constructor"]() == "mock_model"
+    
+    alias_metadata = ModelRegistry.get("tm")
+    assert metadata == alias_metadata
+
+
+def test_registry_unsupported_task():
+    with pytest.raises(ValueError, match="Unsupported task 'invalid_task'"):
+        ModelRegistry.register("test", "invalid_task", lambda: None)
+
+
+def test_registry_duplicate_registration():
+    ModelRegistry.register("dup_model", "regression", lambda: None)
+    
+    with pytest.raises(ValueError, match="already registered"):
+        ModelRegistry.register("dup_model", "regression", lambda: None)
+
+
+def test_registry_duplicate_alias():
+    ModelRegistry.register("m1", "classification", lambda: None, aliases=["a1"])
+    
+    with pytest.raises(ValueError, match="already registered"):
+        ModelRegistry.register("m2", "classification", lambda: None, aliases=["a1"])
+
+
+def test_registry_get_unknown():
+    with pytest.raises(ValueError, match="Unknown model"):
+        ModelRegistry.get("unknown_model")
+
+
+def test_registry_list_and_filter():
+    ModelRegistry.clear() # start fresh for this test
+    ModelRegistry.register("m1", "classification", lambda: None, aliases=["a1"])
+    ModelRegistry.register("m2", "regression", lambda: None)
+    ModelRegistry.register("m3", "classification", lambda: None)
+    
+    all_models = ModelRegistry.list()
+    assert set(all_models) == {"m1", "m2", "m3"}
+    assert "a1" not in all_models
+    
+    clf_models = ModelRegistry.list(task="classification")
+    assert set(clf_models) == {"m1", "m3"}
+    
+    reg_models = ModelRegistry.list(task="regression")
+    assert set(reg_models) == {"m2"}
+    
+    with pytest.raises(ValueError, match="Unsupported task"):
+        ModelRegistry.list(task="invalid_task")
+
+
+def test_factory_create():
+    ModelRegistry.register("m1", "classification", lambda x: f"model_{x}")
+    
+    model = ModelFactory.create(task="classification", model_name="m1", x=10)
+    assert model == "model_10"
+
+
+def test_factory_invalid_task():
+    with pytest.raises(ValueError, match="Unsupported task"):
+        ModelFactory.create("invalid_task", "m1")
+
+
+def test_factory_unknown_model():
+    with pytest.raises(ValueError, match="Unknown model 'unknown'"):
+        ModelFactory.create("classification", "unknown")
+
+
+def test_factory_wrong_task_for_model():
+    ModelRegistry.register("m1", "regression", lambda: None)
+    
+    with pytest.raises(ValueError, match="is registered for task 'regression', but requested for task 'classification'"):
+        ModelFactory.create("classification", "m1")
+
+
+def test_default_registrations():
+    # We shouldn't clear it here, let's just make sure the defaults are present
+    assert ModelRegistry.exists("logistic_regression")
+    assert ModelRegistry.exists("linear_regression")
+    
+    assert "logistic_regression" in ModelRegistry.list("classification")
+    assert "linear_regression" in ModelRegistry.list("regression")
+
+
+def test_logistic_regression_compatibility():
+    # Instantiate
+    clf = ModelFactory.create("classification", "logistic_regression", C=0.5, random_state=42)
+    assert isinstance(clf, LogisticRegression)
+    assert clf.get_params()["C"] == 0.5
+    
+    # Fit/Predict
+    X = np.array([[0, 0], [1, 1]])
+    y = np.array([0, 1])
+    clf.fit(X, y)
+    preds = clf.predict(X)
+    assert len(preds) == 2
+
+
+def test_linear_regression_compatibility():
+    # Instantiate
+    reg = ModelFactory.create("regression", "linear_regression", fit_intercept=False)
+    assert isinstance(reg, LinearRegression)
+    assert reg.get_params()["fit_intercept"] is False
+    
+    # Fit/Predict
+    X = np.array([[1], [2], [3]])
+    y = np.array([2, 4, 6])
+    reg.fit(X, y)
+    preds = reg.predict(np.array([[4]]))
+    assert np.allclose(preds, [8])
