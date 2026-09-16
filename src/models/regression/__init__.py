@@ -13,3 +13,10 @@ model_registry.register(
     aliases=["linreg"]
 )
 
+import src.models.regression.linear_models
+import src.models.regression.tree_models
+import src.models.regression.ensemble_models
+import src.models.regression.kernel_models
+import src.models.regression.neighbor_models
+
+

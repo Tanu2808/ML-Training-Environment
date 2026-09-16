@@ -36,12 +36,29 @@ The factory guarantees that:
 2. The requested model is registered and supports the task.
 3. Useful exceptions are raised for invalid inputs, without silently falling back.
 
-### Currently Registered Models (Phase 2A)
+### Currently Registered Models (Phase 2B)
 
-- **Classification**: `logistic_regression` (aliases: `logreg`, `logistic`)
-- **Regression**: `linear_regression` (aliases: `linreg`)
+#### Classification
+- `logistic_regression` (aliases: `logreg`, `logistic`)
+- `decision_tree_classifier` (aliases: `dt_classifier`)
+- `random_forest_classifier` (aliases: `rf_classifier`, `random_forest`)
+- `gradient_boosting_classifier` (aliases: `gb_classifier`)
+- `svm_classifier` (aliases: `svm`)
+- `knn_classifier` (aliases: `knn`)
+- `naive_bayes_classifier` (aliases: `gaussian_nb`, `nb_classifier`)
 
-*These initial models use standard scikit-learn estimators to prove the architecture.*
+#### Regression
+- `linear_regression` (aliases: `linreg`)
+- `ridge_regression` (aliases: `ridge`)
+- `lasso_regression` (aliases: `lasso`)
+- `elastic_net_regression` (aliases: `elastic_net`)
+- `decision_tree_regressor` (aliases: `dt_regressor`)
+- `random_forest_regressor` (aliases: `rf_regressor`)
+- `gradient_boosting_regressor` (aliases: `gb_regressor`)
+- `svm_regressor` (aliases: `svr`)
+- `knn_regressor` (aliases: `knn_reg`)
+
+*These initial models are instantiated as standard scikit-learn estimators to preserve full compatibility and parameter forwarding capabilities.*
 
 ### How to Register a Future Model
 
@@ -64,7 +81,7 @@ Make sure the module is imported in `src/models/__init__.py` so that the registr
 
 ### Intentionally NOT Implemented Yet
 
-As per Phase 2A requirements, the following are **not** yet implemented:
+As per Phase 2B requirements, the following are **not** yet implemented:
 - Model training loops
 - Cross-validation
 - Hyperparameter tuning
