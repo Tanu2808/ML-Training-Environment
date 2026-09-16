@@ -14,11 +14,11 @@ SUPPORTED_TASKS = {
 class ModelRegistry:
     """Central registry for machine learning models."""
 
-    _models: Dict[str, Dict[str, Any]] = {}
+    def __init__(self):
+        self._models: Dict[str, Dict[str, Any]] = {}
 
-    @classmethod
     def register(
-        cls,
+        self,
         name: str,
         task: str,
         constructor: Callable[..., Any],
@@ -39,16 +39,16 @@ class ModelRegistry:
                 f"Unsupported task '{task}'. Supported tasks: {', '.join(sorted(SUPPORTED_TASKS))}"
             )
 
-        if name in cls._models:
-            existing_task = cls._models[name]["task"]
+        if name in self._models:
+            existing_task = self._models[name]["task"]
             raise ValueError(
                 f"Model '{name}' is already registered for task '{existing_task}'."
             )
 
         aliases = aliases or []
         for alias in aliases:
-            if alias in cls._models:
-                existing_task = cls._models[alias]["task"]
+            if alias in self._models:
+                existing_task = self._models[alias]["task"]
                 raise ValueError(
                     f"Alias '{alias}' for model '{name}' is already registered for task '{existing_task}'."
                 )
@@ -62,24 +62,21 @@ class ModelRegistry:
         }
 
         # Register under canonical name and all aliases
-        cls._models[name] = metadata
+        self._models[name] = metadata
         for alias in aliases:
-            cls._models[alias] = metadata
+            self._models[alias] = metadata
 
-    @classmethod
-    def get(cls, name: str) -> Dict[str, Any]:
+    def get(self, name: str) -> Dict[str, Any]:
         """Retrieve a registered model's metadata."""
-        if name not in cls._models:
+        if name not in self._models:
             raise ValueError(f"Unknown model '{name}'.")
-        return cls._models[name]
+        return self._models[name]
 
-    @classmethod
-    def exists(cls, name: str) -> bool:
+    def exists(self, name: str) -> bool:
         """Check whether a model is registered."""
-        return name in cls._models
+        return name in self._models
 
-    @classmethod
-    def list(cls, task: Optional[str] = None) -> List[str]:
+    def list(self, task: Optional[str] = None) -> List[str]:
         """List registered model names, optionally filtered by task.
 
         Returns only the canonical names, not aliases.
@@ -90,13 +87,25 @@ class ModelRegistry:
             )
 
         canonical_names = set()
-        for metadata in cls._models.values():
+        for metadata in self._models.values():
             if task is None or metadata["task"] == task:
                 canonical_names.add(metadata["name"])
         
         return sorted(list(canonical_names))
 
-    @classmethod
-    def clear(cls) -> None:
+    def clear(self) -> None:
         """Clear the registry (useful for testing)."""
-        cls._models.clear()
+        self._models.clear()
+
+    def get_snapshot(self) -> Dict[str, Dict[str, Any]]:
+        """Snapshot registry state for test isolation."""
+        return self._models.copy()
+
+    def restore_snapshot(self, snapshot: Dict[str, Dict[str, Any]]) -> None:
+        """Restore registry state for test isolation."""
+        self._models.clear()
+        self._models.update(snapshot)
+
+
+# Module-level singleton
+model_registry = ModelRegistry()

@@ -10,6 +10,8 @@ The architecture currently provides a clean, extensible **Model Registry** and *
 
 The `ModelRegistry` acts as the central source of truth for available models. It stores metadata about models, such as their canonical name, task, description, aliases, and the constructor callable. 
 
+We use a single shared module-level singleton: `model_registry`.
+
 Features:
 - Models are registered by task (`classification`, `regression`, `clustering`, `time_series`, `deep_learning`).
 - Prevents duplicate registrations.
@@ -46,10 +48,10 @@ The factory guarantees that:
 To add a new model, create a new file (e.g., `src/models/classification/my_model.py`) or add to the relevant `__init__.py`:
 
 ```python
-from src.models.registry import ModelRegistry
+from src.models.registry import model_registry
 from my_module import MyEstimator
 
-ModelRegistry.register(
+model_registry.register(
     name="my_model",
     task="classification",
     constructor=MyEstimator,

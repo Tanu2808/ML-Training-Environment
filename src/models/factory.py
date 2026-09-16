@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from src.models.registry import ModelRegistry, SUPPORTED_TASKS
+from src.models.registry import model_registry, SUPPORTED_TASKS
 
 
 class ModelFactory:
@@ -28,17 +28,17 @@ class ModelFactory:
                 f"Unsupported task '{task}'. Supported tasks: {', '.join(sorted(SUPPORTED_TASKS))}"
             )
 
-        if not ModelRegistry.exists(model_name):
-            available = ModelRegistry.list(task=task)
+        if not model_registry.exists(model_name):
+            available = model_registry.list(task=task)
             raise ValueError(
                 f"Unknown model '{model_name}' for task '{task}'.\n"
                 f"Available models for '{task}': {', '.join(available)}"
             )
 
-        metadata = ModelRegistry.get(model_name)
+        metadata = model_registry.get(model_name)
         
         if metadata["task"] != task:
-            available = ModelRegistry.list(task=task)
+            available = model_registry.list(task=task)
             raise ValueError(
                 f"Model '{model_name}' is registered for task '{metadata['task']}', "
                 f"but requested for task '{task}'.\n"
@@ -47,3 +47,4 @@ class ModelFactory:
 
         constructor = metadata["constructor"]
         return constructor(**kwargs)
+

@@ -2,13 +2,14 @@
 
 from sklearn.linear_model import LogisticRegression
 
-from src.models.registry import ModelRegistry
+from src.models.registry import model_registry
 
 
-ModelRegistry.register(
+model_registry.register(
     name="logistic_regression",
     task="classification",
     constructor=LogisticRegression,
     description="Standard Logistic Regression model.",
     aliases=["logreg", "logistic"]
 )
+
