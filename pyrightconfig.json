@@ -1,0 +1,8 @@
+{
+  "pythonVersion": "3.10",
+  "extraPaths": ["."],
+  "include": ["src", "tests", "pipelines", "scripts"],
+  "exclude": ["**/__pycache__"],
+  "reportMissingImports": true,
+  "reportMissingModuleSource": false
+}
