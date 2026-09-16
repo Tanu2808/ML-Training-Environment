@@ -28,7 +28,7 @@ src/evaluation/
 
 ### `metrics.py`
 
-#### `classification_metrics(y_true, y_pred, y_prob=None, average="weighted") -> dict`
+#### `classification_metrics(y_true, y_pred, y_prob=None, average="macro") -> dict`
 Calculates `accuracy`, `precision`, `recall`, `f1`, and `confusion_matrix`. If `y_prob` is provided, includes `roc_auc` and `log_loss`.
 
 #### `regression_metrics(y_true, y_pred) -> dict`
@@ -37,9 +37,9 @@ Calculates `mae`, `mse`, `rmse`, `r2`, and `mape`.
 ### `evaluator.py`
 
 #### `EvaluationResult`
-A dataclass representing the output of an evaluation, storing `task`, `metrics` (dict), `y_true`, `y_pred`, and `y_prob`.
+A dataclass representing the output of an evaluation, storing `metrics` (dict), `y_true`, `y_pred`, and `y_prob`.
 
-#### `ClassificationEvaluator.evaluate(model, X, y_true, average="weighted") -> EvaluationResult`
+#### `ClassificationEvaluator.evaluate(model, X, y_true, average="macro") -> EvaluationResult`
 Runs `predict` and (if available) `predict_proba` on the model, returning an `EvaluationResult`.
 
 #### `RegressionEvaluator.evaluate(model, X, y_true) -> EvaluationResult`
