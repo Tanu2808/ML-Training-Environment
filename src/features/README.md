@@ -1,93 +1,137 @@
-# Feature Engineering Module
+# Feature Engineering Layer
 
-The `src/features/` module provides a comprehensive, reusable, and leakage-safe collection of feature engineering utilities designed for tabular ML tasks.
+## Status
+Phase 1C — COMPLETE
 
-## Design Principles
+## Purpose
+The feature engineering layer is responsible for creating new, predictive signals from existing data and selecting the most valuable features for modeling. It handles numerical manipulation, datetime extraction, cyclical encoding, text statistics, interaction terms, and statistical/model-based feature selection.
 
-1. **Leakage Prevention**: All stateful transformations (e.g., frequency encoding, variance selection) use `scikit-learn`-compatible `fit`/`transform` semantics. They calculate statistics **only** on the training data and apply those learned parameters to validation/test sets without recalculating.
-2. **Immutability**: Input pandas DataFrames are never mutated silently. New columns are appended to a copy of the DataFrame.
-3. **Explicit Targeting**: Column names are always explicitly provided to transformations. There is no implicit mutation of existing features.
-4. **Resilience**: Tools handle edge cases like zero division, unparsed dates, empty dataframes, and missing values safely without crashing. 
+## Current Capabilities
+- **Numerical**: Arithmetic operations, ratios, absolute/percentage differences, binning, log transformations.
+- **Categorical**: Frequency encoding, count encoding, rare category grouping.
+- **Datetime**: Extraction of year, month, day, hour, day of week, weekend flags; cyclical encoding for periodic time features.
+- **Text**: Statistics extraction (char count, word count, digit count, average length) and TF-IDF matrix generation.
+- **Interactions**: Automated pairwise interactions (multiply, divide, add, subtract).
+- **Selection**: Filter-based (variance, correlation, mutual info) and wrapper-based (model feature importances).
 
-## Currently Available
+## Module Structure
 
-### Numerical Features (`numerical.py`)
-- Basic Arithmetic: `add_features`, `subtract_features`, `multiply_features`
-- Ratios & Differences: `ratio_feature` (with zero-denominator handling), `absolute_difference`, `percentage_difference`
-- Aggregation: `aggregate_features` (sum, mean, max, min, median, std, range across multiple columns)
-- Binning: `bin_numeric_feature` (uniform or quantile binning)
-- Transformations: `log_feature` (safe `log1p` handling)
-
-### Categorical Features (`categorical.py`)
-- String Normalization: `normalize_categories` (strip whitespace, lowercase)
-- Stateful Encoders (Leakage-Safe):
-  - `FrequencyEncoder`: Replaces categories with their relative frequency (calculated strictly from the training set). Unseen categories in test sets default to 0 (or a configurable fallback).
-  - `CountEncoder`: Replaces categories with their absolute count in the training set.
-  - `RareCategoryGrouper`: Groups low-frequency categories into a single `__RARE__` label. Configurable via absolute minimum counts or percentage thresholds.
-
-### Datetime Features (`datetime.py`)
-- Calendar Components: `extract_datetime_features` (extract year, month, day, day_of_week, quarter, hour, is_weekend, is_month_start, etc.)
-- Periodic Encoding: `add_cyclical_features` (transforms periodic values like hour or month into sine/cosine pairs to preserve circular topology).
-
-### Feature Interactions (`interactions.py`)
-- Controlled Pairwise Combinations: `create_interaction_features` (generates specified interactions — multiply, add, subtract, ratio — strictly for a provided list of columns to avoid feature explosion).
-
-### Text Features (`text.py`)
-- Vectorized Statistics: `extract_text_features` (char count, word count, digit count, uppercase count, punctuation count, average word length, unique word count).
-- Stateful NLP: `TfidfTransformer` (Leakage-safe wrapper over `scikit-learn`'s TF-IDF vectorizer that preserves non-text columns).
-
-### Feature Selection (`selection.py`)
-All selectors inherit from `BaseEstimator, TransformerMixin` to guarantee leakage safety:
-- `VarianceSelector`: Removes features with low variance.
-- `CorrelationSelector`: Drops highly correlated features to reduce multicollinearity.
-- `MutualInfoSelector`: Retains the top-k features based on mutual information with the target (classification or regression).
-- `ModelBasedSelector`: Selects features using `feature_importances_` from a tree-based estimator (e.g., Random Forest).
-- Stateless Subsetting: `select_features` (simple column subsetting).
-
-## Examples
-
-### Leakage-Safe Categorical Encoding
-
-```python
-from src.features import FrequencyEncoder
-
-# Fit ONLY on training data
-encoder = FrequencyEncoder(columns=["city", "grade"], unknown_value=0.0)
-encoder.fit(X_train)
-
-# Transform both safely
-X_train_enc = encoder.transform(X_train)
-X_test_enc = encoder.transform(X_test)  # Unseen categories get 0.0
+```text
+src/features/
+├── __init__.py
+├── categorical.py
+├── datetime.py
+├── interactions.py
+├── numerical.py
+├── selection.py
+├── text.py
+└── README.md
 ```
 
-### Chained Numerical & Interaction Engineering
+## Public API
+
+### `numerical.py`
+
+#### `add_features(df: pd.DataFrame, col1: str, col2: str, name: str, ...) -> pd.DataFrame`
+Adds two numeric columns.
+
+#### `subtract_features(df: pd.DataFrame, col1: str, col2: str, name: str, ...) -> pd.DataFrame`
+Subtracts `col2` from `col1`.
+
+#### `multiply_features(df: pd.DataFrame, col1: str, col2: str, name: str, ...) -> pd.DataFrame`
+Multiplies two numeric columns.
+
+#### `ratio_feature(df: pd.DataFrame, num_col: str, den_col: str, name: str, ...) -> pd.DataFrame`
+Computes the ratio `num_col / den_col`, safely handling zero division.
+
+#### `absolute_difference(...)` / `percentage_difference(...)`
+Calculates delta metrics between columns.
+
+#### `aggregate_features(df: pd.DataFrame, columns: list[str], agg_func: str, name: str, ...) -> pd.DataFrame`
+Aggregates multiple columns row-wise (e.g. `sum`, `mean`, `max`).
+
+#### `bin_numeric_feature(df: pd.DataFrame, col: str, bins: int, name: str, ...) -> pd.DataFrame`
+Discretizes a numeric feature into equal-width bins using `pd.cut`.
+
+### `categorical.py`
+
+#### `FrequencyEncoder(columns: list[str] | None = None)`
+Leakage-safe encoder (`BaseEstimator`, `TransformerMixin`) that encodes categories by their normalized frequency (proportion) in the training set.
+
+#### `CountEncoder(columns: list[str] | None = None)`
+Leakage-safe encoder that encodes categories by their raw count in the training set.
+
+#### `RareCategoryGrouper(columns: list[str] | None, threshold: float = 0.05, replace_with: str = "Rare")`
+Leakage-safe transformer that groups rare categories (appearing less than `threshold` frequency) into a single category.
+
+### `datetime.py`
+
+#### `extract_datetime_features(df: pd.DataFrame, column: str, features: list[str], ...) -> pd.DataFrame`
+Extracts components such as `year`, `month`, `day`, `dayofweek`, `hour`, `is_weekend` from a datetime column.
+
+#### `add_cyclical_features(df: pd.DataFrame, column: str, max_val: float) -> pd.DataFrame`
+Creates `sin` and `cos` transformations of periodic time features (e.g. month, hour) to preserve cyclical distance.
+
+### `interactions.py`
+
+#### `create_interaction_features(df: pd.DataFrame, columns: list[str], operations: list[str], ...) -> pd.DataFrame`
+Creates pairwise combinations of the specified `columns` using operations from `['multiply', 'add', 'subtract', 'divide']`.
+
+### `text.py`
+
+#### `extract_text_features(df: pd.DataFrame, column: str, features: list[str], ...) -> pd.DataFrame`
+Extracts text statistics: `char_count`, `word_count`, `digit_count`, `uppercase_count`, `lowercase_count`, `avg_word_length`, `unique_word_count`.
+
+#### `TfidfTransformer(column: str, max_features: int = 100, ...)`
+Leakage-safe TF-IDF vectorizer that expands a text column into multiple TF-IDF score columns.
+
+### `selection.py`
+
+#### `VarianceSelector(threshold: float = 0.0)`
+Leakage-safe selector that drops numeric features with variance below `threshold`.
+
+#### `CorrelationSelector(threshold: float = 0.9)`
+Leakage-safe selector that drops highly collinear features (keeping the first one seen).
+
+#### `MutualInfoSelector(k: int = 10, task: str = "classification")`
+Leakage-safe selector that keeps the top `k` features based on Mutual Information with the target. Requires calling `fit(X, y)`.
+
+#### `ModelBasedSelector(estimator, max_features: int | None = None)`
+Leakage-safe selector utilizing an estimator's `feature_importances_` or `coef_` attribute to select the top features.
+
+#### `select_features(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame`
+Stateless convenience function to subset columns.
+
+## Usage Examples
 
 ```python
-from src.features import ratio_feature, create_interaction_features
+from src.features.selection import MutualInfoSelector
+from src.features.categorical import RareCategoryGrouper
+from src.features.numerical import ratio_feature
 
-# Safe ratio (no division by zero issues)
-df = ratio_feature(df, numerator="clicks", denominator="impressions", on_zero_denom="nan")
+# Create simple ratio feature
+df = ratio_feature(df, num_col="income", den_col="debt", name="income_debt_ratio")
 
-# Explicit pairwise interactions (multiply & add)
-df = create_interaction_features(
-    df, 
-    columns=["age", "income", "credit_score"], 
-    operations=["multiply", "add"]
-)
+# Group rare categories safely based on training data
+grouper = RareCategoryGrouper(columns=["city"], threshold=0.01)
+train_df = grouper.fit_transform(train_df)
+test_df = grouper.transform(test_df)
+
+# Select top 5 features based on mutual info
+selector = MutualInfoSelector(k=5, task="classification")
+train_X_selected = selector.fit_transform(train_X, train_y)
+test_X_selected = selector.transform(test_X)
 ```
 
-### Feature Selection in a Pipeline
+## Dependencies
+- `pandas`
+- `numpy`
+- `scikit-learn` (for TF-IDF, BaseEstimator/TransformerMixin, mutual_info)
 
-```python
-from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestClassifier
-from src.features import VarianceSelector, MutualInfoSelector
+## Testing
+Tested via `tests/test_phase1c_features.py`. Validates numerical math, category frequency leakage avoidance, time feature calculations, cyclical math, text parsing, and correct subsetting in selectors.
 
-pipeline = Pipeline([
-    ('drop_constant', VarianceSelector(threshold=0.0)),
-    ('top_10_mi', MutualInfoSelector(k=10, task="classification")),
-    ('model', RandomForestClassifier())
-])
-
-pipeline.fit(X_train, y_train)
-```
+## Not Implemented
+- Deep NLP features (e.g. Word2Vec, BERT embeddings)
+- Auto-Feature engineering frameworks (e.g. Featuretools)
+- Sequence/Time-series lagging utilities

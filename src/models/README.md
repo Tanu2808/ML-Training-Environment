@@ -1,44 +1,71 @@
-# Model layer
+# Model Layer
 
-This directory contains the machine learning model architecture.
+## Status
+Phase 2B — COMPLETE
 
-## Phase 2A Architecture
+## Purpose
+The model layer provides a centralized registry for machine learning models and a factory for instantiating them safely. It decouples the choice of algorithm from the codebase, enabling easy addition of models while ensuring unified parameter forwarding.
 
-The architecture currently provides a clean, extensible **Model Registry** and **Model Factory**. The goal is to allow future components to construct models without knowing the underlying implementation details, while preventing scattered hard-coded model construction logic.
+## Current Capabilities
+- **Model Registry**: Centralized `ModelRegistry` class that tracks canonical names, aliases, descriptions, and the underlying callable constructor.
+- **Model Factory**: `ModelFactory` providing a single `create` method that fetches models from the registry and forwards arbitrary parameters.
+- **Classification Models**: 7 classical classification estimators (from `scikit-learn`).
+- **Regression Models**: 9 classical regression estimators (from `scikit-learn`).
 
-### Model Registry
+## Module Structure
 
-The `ModelRegistry` acts as the central source of truth for available models. It stores metadata about models, such as their canonical name, task, description, aliases, and the constructor callable. 
-
-We use a single shared module-level singleton: `model_registry`.
-
-Features:
-- Models are registered by task (`classification`, `regression`, `clustering`, `time_series`, `deep_learning`).
-- Prevents duplicate registrations.
-- Safely retrieves metadata or lists available models for a given task.
-
-### Model Factory
-
-The `ModelFactory` provides a unified interface for instantiating models:
-```python
-from src.models import ModelFactory
-
-clf = ModelFactory.create(
-    task="classification",
-    model_name="logistic_regression",
-    C=1.0, 
-    max_iter=1000
-)
+```text
+src/models/
+├── __init__.py
+├── factory.py
+├── registry.py
+├── classification/
+│   ├── __init__.py
+│   ├── ensemble_models.py
+│   ├── kernel_models.py
+│   ├── neighbor_models.py
+│   ├── probabilistic_models.py
+│   └── tree_models.py
+├── regression/
+│   ├── __init__.py
+│   ├── ensemble_models.py
+│   ├── kernel_models.py
+│   ├── linear_models.py
+│   ├── neighbor_models.py
+│   └── tree_models.py
+└── README.md
 ```
 
-The factory guarantees that:
-1. The requested task is valid.
-2. The requested model is registered and supports the task.
-3. Useful exceptions are raised for invalid inputs, without silently falling back.
+## Public API
 
-### Currently Registered Models (Phase 2B)
+### `registry.py`
 
-#### Classification
+#### `ModelRegistry` (and the `model_registry` singleton)
+A class to store and manage models. A module-level singleton `model_registry` is exposed and used by default across the codebase.
+
+#### `model_registry.register(name: str, task: str, constructor: Callable, description: str = "", aliases: list[str] = None)`
+Registers a new model.
+
+#### `model_registry.get(name: str) -> dict`
+Retrieves model metadata, resolving aliases automatically. Raises `ValueError` if the model does not exist.
+
+#### `model_registry.list(task: str = None) -> list[str]`
+Returns a list of canonical names of registered models. If `task` is provided, filters the list.
+
+#### `model_registry.exists(name: str) -> bool`
+Checks if a canonical name or alias is registered.
+
+#### `model_registry.get_snapshot() -> dict` / `model_registry.restore_snapshot(snapshot: dict)`
+Public API for capturing and restoring the registry state (useful primarily for test isolation).
+
+### `factory.py`
+
+#### `ModelFactory.create(task: str, model_name: str, **kwargs) -> Any`
+Retrieves the model constructor from the `model_registry` and instantiates it with `**kwargs`. Raises `ValueError` for unknown models or task mismatches. The returned object is the raw estimator (e.g. `sklearn.ensemble.RandomForestClassifier`), not a custom wrapper.
+
+## Currently Registered Models
+
+### Classification
 - `logistic_regression` (aliases: `logreg`, `logistic`)
 - `decision_tree_classifier` (aliases: `dt_classifier`)
 - `random_forest_classifier` (aliases: `rf_classifier`, `random_forest`)
@@ -47,7 +74,7 @@ The factory guarantees that:
 - `knn_classifier` (aliases: `knn`)
 - `naive_bayes_classifier` (aliases: `gaussian_nb`, `nb_classifier`)
 
-#### Regression
+### Regression
 - `linear_regression` (aliases: `linreg`)
 - `ridge_regression` (aliases: `ridge`)
 - `lasso_regression` (aliases: `lasso`)
@@ -58,35 +85,41 @@ The factory guarantees that:
 - `svm_regressor` (aliases: `svr`)
 - `knn_regressor` (aliases: `knn_reg`)
 
-*These initial models are instantiated as standard scikit-learn estimators to preserve full compatibility and parameter forwarding capabilities.*
-
-### How to Register a Future Model
-
-To add a new model, create a new file (e.g., `src/models/classification/my_model.py`) or add to the relevant `__init__.py`:
+## Usage Examples
 
 ```python
-from src.models.registry import model_registry
-from my_module import MyEstimator
+from src.models import ModelFactory, model_registry
 
-model_registry.register(
-    name="my_model",
-    task="classification",
-    constructor=MyEstimator,
-    description="A great new model.",
-    aliases=["mm"]
+# List available classification models
+classifiers = model_registry.list(task="classification")
+
+# Create a random forest using the factory (supports aliases)
+model = ModelFactory.create(
+    task="classification", 
+    model_name="rf_classifier", 
+    n_estimators=100, 
+    max_depth=5, 
+    random_state=42
 )
+
+# The model is a raw sklearn estimator ready for training
+model.fit(X_train, y_train)
 ```
 
-Make sure the module is imported in `src/models/__init__.py` so that the registration is executed.
+## Dependencies
+- `scikit-learn` (for the actual model implementations)
 
-### Intentionally NOT Implemented Yet
+## Testing
+Tested via `tests/test_phase2a_models.py` and `tests/test_phase2b_models.py`. Validates singleton registry state, test isolation, missing models, duplicate names, task filtering, instantiation matching `sklearn` types, and parameter forwarding.
 
-As per Phase 2B requirements, the following are **not** yet implemented:
-- Model training loops
-- Cross-validation
-- Hyperparameter tuning
-- Ensembles
-- Explainability
-- Inference pipelines
+## Not Implemented
+As of Phase 2B, the following remain strictly **unimplemented**:
+- Unified training orchestration or training loops
+- Cross-validation framework
+- Hyperparameter tuning framework
+- Ensemble generation framework
+- Explainability framework
+- Inference/persistence pipelines
 - Experiment tracking
-- Base model abstractions (standard `sklearn` estimators are used via duck typing)
+
+(These features are slated for Phase 2C and beyond).

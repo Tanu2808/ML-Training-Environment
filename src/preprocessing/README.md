@@ -1,134 +1,144 @@
-# `src/preprocessing` — Preprocessing Utilities
+# Preprocessing Layer
 
-Missing-value imputation, categorical encoding, numerical scaling, transformations,
-outlier handling, and reusable sklearn-compatible pipelines.
+## Status
+Phase 1B — COMPLETE
 
----
+## Purpose
+The preprocessing layer is responsible for preparing raw data for machine learning models. It handles missing values, encodes categorical variables, scales numerical features, detects/handles outliers, and applies mathematical transformations.
 
-## Status: ✅ IMPLEMENTED (Phase 1B)
+## Current Capabilities
+- Imputation of missing values via mean, median, most_frequent, or constant strategies.
+- One-hot and ordinal encoding of categorical features.
+- Standardization, min-max scaling, and robust scaling.
+- Outlier detection via IQR or Z-score methods, supporting clipping or removal.
+- Mathematical transformations (log, square root, power, reciprocal).
+- Extensible `sklearn`-compatible transformers (`BaseEstimator`, `TransformerMixin`) for train/test data leakage safety.
+- Preprocessing pipelines (`PreprocessingPipeline`) to string steps together.
 
----
+## Module Structure
 
-## Core Design Principles
+```text
+src/preprocessing/
+├── __init__.py
+├── encoding.py
+├── missing_values.py
+├── outliers.py
+├── pipeline.py
+├── scaling.py
+├── transformations.py
+└── README.md
+```
 
-- **Never mutates the input DataFrame** — all functions return a new DataFrame.
-- **Leakage-safe** — stateful transformers expose `fit(train)` → `transform(test)`.  Statistics are **never** computed from test/validation data.
-- **sklearn-compatible** — all stateful classes implement `BaseEstimator + TransformerMixin`.
-
----
-
-## Modules
+## Public API
 
 ### `missing_values.py`
 
-| API | Type | Description |
-|---|---|---|
-| `handle_missing_values(df, strategy, columns, fill_value, drop_threshold)` | Function | Stateless imputation (8 strategies) |
-| `MissingValueImputer(strategy, columns, fill_value)` | Transformer | Leakage-safe fit/transform imputer |
+#### `MissingValueImputer(strategy: str = "mean", fill_value: Any = None, columns: list[str] | None = None)`
+Leakage-safe imputer that learns statistics (e.g., mean) on the training set during `fit()` and applies them to both train and test during `transform()`.
 
-**Strategies:** `"mean"`, `"median"`, `"mode"`, `"constant"`, `"ffill"`, `"bfill"`, `"drop_rows"`, `"drop_cols"`
-
-```python
-imp = MissingValueImputer(strategy="mean")
-X_train_imp = imp.fit_transform(X_train)
-X_test_imp  = imp.transform(X_test)   # uses train mean, not test mean
-```
-
----
+#### `handle_missing_values(df: pd.DataFrame, strategy: str = "mean", ...)`
+Stateless convenience function to fill missing values (caution: not strictly leakage-safe for test sets if using mean/median without prior fitting).
 
 ### `encoding.py`
 
-| API | Type | Description |
-|---|---|---|
-| `OneHotEncoder(columns, drop_first, handle_unknown, sparse_output)` | Transformer | OHE with unknown-category handling |
-| `OrdinalCategoryEncoder(columns, categories, handle_unknown, unknown_value)` | Transformer | Ordinal encoding with explicit ordering |
-| `one_hot_encode(df, columns, drop_first)` | Function | Stateless OHE (fits on df itself) |
+#### `OneHotEncoder(columns: list[str] | None = None, drop_first: bool = False, handle_unknown: str = "ignore")`
+Leakage-safe one-hot encoder that learns categories during `fit()` and gracefully handles unknown categories during `transform()`.
 
-```python
-enc = OneHotEncoder(columns=["city"], handle_unknown="ignore")
-enc.fit(X_train)
-X_train_enc = enc.transform(X_train)
-X_test_enc  = enc.transform(X_test)  # unknown cities → all-zero row
-```
+#### `OrdinalCategoryEncoder(columns: list[str] | None = None, handle_unknown: str = "use_encoded_value", unknown_value: int = -1)`
+Leakage-safe ordinal integer encoder.
 
----
+#### `one_hot_encode(df: pd.DataFrame, columns: list[str], drop_first: bool = False) -> pd.DataFrame`
+Stateless convenience function (wraps `pd.get_dummies`).
 
 ### `scaling.py`
 
-| API | Type | Description |
-|---|---|---|
-| `DataFrameScaler(scaler_type, columns)` | Transformer | Wraps StandardScaler / MinMaxScaler / RobustScaler |
-| `make_standard_scaler(columns)` | Factory | `DataFrameScaler("standard")` |
-| `make_minmax_scaler(columns, feature_range)` | Factory | `DataFrameScaler("minmax")` |
-| `make_robust_scaler(columns)` | Factory | `DataFrameScaler("robust")` |
-| `standardize(df, columns)` | Function | Stateless standard scaling |
+#### `DataFrameScaler(scaler, columns: list[str] | None = None)`
+A wrapper that applies a given sklearn scaler (like `StandardScaler`) to a pandas DataFrame and returns a DataFrame (preserving columns and indices).
 
-```python
-scaler = DataFrameScaler("standard")
-X_train_sc = scaler.fit_transform(X_train)
-X_test_sc  = scaler.transform(X_test)  # uses train mean/std
-```
+#### `make_standard_scaler(columns: list[str] | None = None) -> DataFrameScaler`
+Creates a `DataFrameScaler` backed by `sklearn.preprocessing.StandardScaler`.
 
----
+#### `make_minmax_scaler(columns: list[str] | None = None) -> DataFrameScaler`
+Creates a `DataFrameScaler` backed by `sklearn.preprocessing.MinMaxScaler`.
+
+#### `make_robust_scaler(columns: list[str] | None = None) -> DataFrameScaler`
+Creates a `DataFrameScaler` backed by `sklearn.preprocessing.RobustScaler`.
+
+#### `standardize(df: pd.DataFrame, columns: list[str] | None = None) -> pd.DataFrame`
+Stateless standard scaler (Z-score normalization).
 
 ### `transformations.py`
 
-| API | Type | Description |
-|---|---|---|
-| `apply_log1p(df, columns, on_invalid)` | Function | `log(1+x)`, validates x ≥ 0 |
-| `apply_sqrt(df, columns, on_invalid)` | Function | `√x`, validates x ≥ 0 |
-| `apply_power(df, exponent, columns)` | Function | `xⁿ` |
-| `apply_reciprocal(df, columns, on_invalid)` | Function | `1/x`, validates x ≠ 0 |
-| `log_transform(df, columns)` | Function | Backward-compatible alias for `apply_log1p(..., on_invalid="nan")` |
+#### `apply_log1p(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame`
+Applies `log(1 + x)` to numeric columns.
 
-`on_invalid` accepts: `"raise"` (default), `"nan"`, `"clip"`.
+#### `apply_sqrt(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame`
+Applies square root transformation.
 
----
+#### `apply_power(df: pd.DataFrame, columns: list[str], power: float) -> pd.DataFrame`
+Applies power transformation (`x ** power`).
+
+#### `apply_reciprocal(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame`
+Applies `1 / x` transformation (handling zero division).
+
+#### `log_transform(df: pd.DataFrame, columns: list[str], offset: float = 1.0) -> pd.DataFrame`
+Applies `log(x + offset)` transformation.
 
 ### `outliers.py`
 
-| API | Type | Description |
-|---|---|---|
-| `get_outlier_stats(df, columns, multiplier)` | Function | IQR bounds + counts per column |
-| `detect_outliers(df, columns, multiplier)` | Function | Boolean mask of outlier positions |
-| `clip_outliers(df, columns, multiplier, lower_bound, upper_bound)` | Function | Clip to IQR bounds |
-| `remove_outliers(df, columns, multiplier)` | Function | **Explicit opt-in** row removal |
-| `handle_outliers(df, columns, action, multiplier)` | Function | Dispatcher: `"clip"`, `"remove"`, `"none"` |
+#### `get_outlier_stats(df: pd.DataFrame, columns: list[str] | None = None, method: str = "iqr", threshold: float = 1.5) -> dict`
+Calculates upper and lower boundaries based on IQR or Z-score.
 
-Default IQR multiplier: **1.5** (Tukey's rule).
+#### `detect_outliers(df: pd.DataFrame, columns: list[str], method: str = "iqr", threshold: float = 1.5) -> pd.Series`
+Returns a boolean mask of rows that contain at least one outlier.
 
-> **Important:** `remove_outliers` is always an **explicit** call — clipping never silently removes rows.
+#### `clip_outliers(df: pd.DataFrame, columns: list[str], lower: dict, upper: dict) -> pd.DataFrame`
+Clips values to the provided pre-computed boundaries.
 
----
+#### `remove_outliers(df: pd.DataFrame, columns: list[str], method: str = "iqr", threshold: float = 1.5) -> pd.DataFrame`
+Removes rows containing outliers.
+
+#### `handle_outliers(df: pd.DataFrame, columns: list[str] | None = None, method: str = "iqr", threshold: float = 1.5, action: str = "clip") -> pd.DataFrame`
+A convenience wrapper to compute bounds and apply either clipping or dropping.
 
 ### `pipeline.py`
 
-| API | Type | Description |
-|---|---|---|
-| `PreprocessingPipeline` | Class | Original no-op pipeline (backward compatible) |
-| `build_preprocessing_pipeline(numeric_features, categorical_features, ...)` | Factory | Returns a sklearn `ColumnTransformer` |
-| `FullPreprocessingPipeline(numeric_features, categorical_features, ...)` | Wrapper | Pandas-friendly fit/transform returning DataFrames |
+#### `PreprocessingPipeline(steps: list[tuple[str, TransformerMixin]])`
+A pipeline builder acting as a wrapper over `sklearn.pipeline.Pipeline` but guaranteeing `pd.DataFrame` output.
+
+#### `build_preprocessing_pipeline(num_cols: list[str], cat_cols: list[str], impute_num: str = "mean", impute_cat: str = "most_frequent", scale: bool = True) -> BaseEstimator`
+Builds a standard pipeline (imputation + scaling + encoding) mapped to numerical and categorical column subsets.
+
+## Usage Examples
 
 ```python
-pipe = FullPreprocessingPipeline(
-    numeric_features=["age", "salary"],
-    categorical_features=["city", "gender"],
-    scaler="standard",            # "standard" | "minmax" | "robust" | "none"
-    cat_encoder="onehot",         # "onehot" | "ordinal"
-    numeric_impute_strategy="median",
+from src.preprocessing.pipeline import build_preprocessing_pipeline
+
+# Create a leakage-safe preprocessing pipeline
+pipeline = build_preprocessing_pipeline(
+    num_cols=["age", "balance"], 
+    cat_cols=["education", "job"], 
+    impute_num="median", 
+    scale=True
 )
-X_train_out = pipe.fit_transform(X_train)
-X_test_out  = pipe.transform(X_test)    # no leakage
+
+# Fit on training data
+train_processed = pipeline.fit_transform(train_df)
+
+# Transform test data (using parameters learned from train_df)
+test_processed = pipeline.transform(test_df)
 ```
 
----
+## Dependencies
+- `pandas`
+- `numpy`
+- `scikit-learn`
 
-## Leakage Prevention
+## Testing
+Tested via `tests/test_phase1b_preprocessing.py`. Covers data leakage prevention for imputers and encoders, index/column preservation, and outlier threshold math.
 
-All stateful transformers:
-
-1. Learn statistics **only** from training data during `fit()`.
-2. Apply those statistics unchanged to validation/test data during `transform()`.
-3. Never call `fit()` on test data.
-
-Proven by dedicated `TestDataLeakage` test class covering imputation, scaling, and encoding.
+## Not Implemented
+- Target encoding (e.g. Mean Encoding)
+- Discretization (K-Bins)
+- Advanced imputation (KNNImputer, IterativeImputer)
+- Feature extraction via PCA/SVD
