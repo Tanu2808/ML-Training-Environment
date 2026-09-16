@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 
 # 1. Data
@@ -18,9 +19,7 @@ from src.evaluation.evaluator import ClassificationEvaluator
 from src.evaluation.error_analysis import get_classification_errors
 from src.evaluation.plots import plot_confusion_matrix
 
-def main():
-    print("Running cross-module integration test...")
-    # Generate synthetic dataset
+def test_cross_module_integration():
     np.random.seed(42)
     df = pd.DataFrame({
         "num1": np.random.randn(100),
@@ -61,16 +60,16 @@ def main():
     # 4. Evaluation layer
     evaluator = ClassificationEvaluator(model)
     res = evaluator.evaluate(X_test_final, y_test)
-    print("Metrics:", res.metrics)
+    assert "accuracy" in res.metrics
+    assert "log_loss" in res.metrics
+    assert res.metrics["accuracy"] >= 0.0
     
     # Error analysis
     errors = get_classification_errors(res.y_true, res.y_pred, df=X_test_final)
-    print(f"Misclassified: {len(errors)}")
+    assert isinstance(errors, pd.DataFrame)
     
     # Plot (just to ensure it doesn't crash)
     fig, ax = plot_confusion_matrix(res.y_true, res.y_pred)
-    
-    print("Cross-module integration successful!")
-
-if __name__ == "__main__":
-    main()
+    assert fig is not None
+    assert ax is not None
+    plt.close(fig)
